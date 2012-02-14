@@ -284,6 +284,10 @@ Use curl on the backup to upload files to rackspace Cloud Files.
 
 Options are :
 
+-l list containers/container content
+-f format for listing: json/xml
+-r Object - Removes object from container
+
 -s - Use Servicenet to upload.
 -q - Be quiet when uploading.
 -u Username - specify an alternate username than the one stored in config
@@ -327,7 +331,7 @@ choose_default=
 content_type=
 create_container=
 
-while getopts ":c:dxsu:k:a:C:qm:" opt; do
+while getopts ":c:f:dxsu:k:a:C:qm:lr:" opt; do
   case $opt in
     q)
     QUIET=true
@@ -356,6 +360,15 @@ while getopts ":c:dxsu:k:a:C:qm:" opt; do
     m)
     create_container=$OPTARG
     ;;
+    l)
+    list_container=True
+    ;;
+    r)
+    delete_object=$OPTARG
+    ;;
+    f)
+    format=$OPTARG
+    ;;
     x)
     set -x
     ;;
@@ -374,6 +387,26 @@ shift $((OPTIND-1))
 
 
 [[ -n ${RCLOUD_API_KEY} && -n ${RCLOUD_API_USER} ]] && check_api_key || get_api_key
+
+formatarg=""
+if [[ -n format ]];then
+    formatarg=?format=${format}
+fi
+
+if [[ -n delete_object && -n container ]];then
+    curl ${options} -k -X DELETE -H "ETag: ${etag}" -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}/${delete_object}
+    exit $?
+fi
+
+if [[ -n list_container && -n container ]];then
+    curl ${options} -k -X GET -H "ETag: ${etag}" -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}${formatarg}
+    exit $?
+fi
+
+if [[ -n list_container ]];then
+    curl ${options} -k -f -X GET -H "ETag: ${etag}" -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}
+    exit $?
+fi
 
 if [[ -n ${create_container} ]];then
     create_container ${create_container}
@@ -427,4 +460,3 @@ for arg in $ARGS;do
     put_object ${container} ${file} ${dest_name}
     [[ -n ${tarname} ]] && rm -f ${tarname}
 done
-

@@ -190,7 +190,7 @@ function put_object {
 
     expire_opt=""
     if [[ -n ${expire} ]];then
-        expire_opt="-H \"X-Delete-After: ${expire}\""
+        expire_opt=-H "X-Delete-After: ${expire}"
     fi
 
     if [[ ${container} == */* ]];then

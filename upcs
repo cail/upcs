@@ -188,13 +188,19 @@ function put_object {
         options="-s"
     fi
 
+    expire_opt=""
+    if [[ -n ${expire} ]];then
+        expire_opt="-H \"X-Delete-After: ${expire}\""
+    fi
+
     if [[ ${container} == */* ]];then
         object="${container#*/}/${object}"
         container=${container%%/*}
     fi
 
     [[ $QUIET != "true" ]] && echo "Uploading ${file}"
-    curl ${options} -k -o/dev/null -f -X PUT -T ${file} -H "ETag: ${etag}" -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}/${object}
+    [[ $QUIET != "true" ]] && echo curl ${options} -k -o/dev/null -f -X PUT -T ${file} -H "ETag: ${etag}" ${expire_opt} -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}/${object}
+    curl ${options} -k -o/dev/null -f -X PUT -T ${file} -H "ETag: ${etag}" ${expire_opt} -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}/${object}
     [[ $QUIET != "true" ]] && echo
 
     PUBLIC_CNAME=$(container_cname ${container})
@@ -297,6 +303,7 @@ Options are :
 -d - Use the last chosen container to upload.
 -C Content/Type - force a specific a content-type for file(s) uploaded.
 -m Container - create a container.
+-e seconds - expire after X seconds
 -x - set debug mode.
 
 Config is inside ~/.config/rackspace-cloud/config.
@@ -330,8 +337,9 @@ set -e
 choose_default=
 content_type=
 create_container=
+delete_object=
 
-while getopts ":c:f:dxsu:k:a:C:qm:lr:" opt; do
+while getopts ":c:f:dxsu:k:a:C:qm:lr:e:" opt; do
   case $opt in
     q)
     QUIET=true
@@ -369,6 +377,9 @@ while getopts ":c:f:dxsu:k:a:C:qm:lr:" opt; do
     f)
     format=$OPTARG
     ;;
+    e)
+    expire=$OPTARG
+    ;;
     x)
     set -x
     ;;
@@ -389,21 +400,21 @@ shift $((OPTIND-1))
 [[ -n ${RCLOUD_API_KEY} && -n ${RCLOUD_API_USER} ]] && check_api_key || get_api_key
 
 formatarg=""
-if [[ -n format ]];then
+if [[ -n ${format} ]];then
     formatarg=?format=${format}
 fi
 
-if [[ -n delete_object && -n container ]];then
+if [[ -n ${delete_object} && -n ${container} ]];then
     curl ${options} -k -X DELETE -H "ETag: ${etag}" -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}/${delete_object}
     exit $?
 fi
 
-if [[ -n list_container && -n container ]];then
+if [[ -n ${list_container} && -n ${container} ]];then
     curl ${options} -k -X GET -H "ETag: ${etag}" -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}${formatarg}
     exit $?
 fi
 
-if [[ -n list_container ]];then
+if [[ -n ${list_container} ]];then
     curl ${options} -k -f -X GET -H "ETag: ${etag}" -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}
     exit $?
 fi

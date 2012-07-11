@@ -188,9 +188,9 @@ function put_object {
         options="-s"
     fi
 
-    expire_opt=""
+    expire_opt="xx:"
     if [[ -n ${expire} ]];then
-        expire_opt="-H \"X-Delete-After: ${expire}\""
+        expire_opt="X-Delete-After: ${expire}"
     fi
 
     if [[ ${container} == */* ]];then
@@ -199,8 +199,8 @@ function put_object {
     fi
 
     [[ $QUIET != "true" ]] && echo "Uploading ${file}"
-    [[ $QUIET != "true" ]] && echo curl ${options} -k -o/dev/null -f -X PUT -T ${file} -H "ETag: ${etag}" ${expire_opt} -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}/${object}
-    curl ${options} -k -o/dev/null -f -X PUT -T ${file} -H "ETag: ${etag}" ${expire_opt} -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}/${object}
+    [[ $QUIET != "true" ]] && echo curl ${options} -k -o/dev/null -f -X PUT -T ${file} -H "ETag: ${etag}" -H ${expire_opt} -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}/${object}
+    curl ${options} -k -o/dev/null -f -X PUT -T ${file} -H "ETag: ${etag}" -H ${expire_opt} -H "Content-type: ${ctype}" -H "X-Auth-Token: ${StorageToken}" ${StorageUrl}/${container}/${object}
     [[ $QUIET != "true" ]] && echo
 
     PUBLIC_CNAME=$(container_cname ${container})
